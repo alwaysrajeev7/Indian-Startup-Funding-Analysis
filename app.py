@@ -230,7 +230,7 @@ def load_investor_details(investor):
 
         undisclosed_indices = set(undis1.index).union(undis2.index).union(undis3.index)
 
-        new_df = df.drop(index=undisclosed_indices)
+        new_df = df.drop(index = undisclosed_indices)
         new = new_df[new_df['vertical'].isin(l)]['investors'].value_counts().reset_index().head(10).drop(columns = 'count')
         st.dataframe(new)
 
@@ -242,7 +242,7 @@ def load_startup_details(startup_name):
 
     # industry , sub-industry
     industry_name = df[df['startup'] == startup_name].groupby('vertical')['amount'].sum().sort_values(ascending=False).index[0]
-    sub_industry_name = df[df['startup'] == startup_name].groupby('subvertical')['amount'].sum().sort_values(ascending=False).index[0]
+    sub_industry_name = df[df['startup'] == startup_name].groupby('subvertical')['amount'].sum().sort_values(ascending=False).index[0].title()
 
     st.metric(label='Industry',value= industry_name)
     st.markdown("---")
