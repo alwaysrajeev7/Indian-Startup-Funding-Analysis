@@ -40,6 +40,9 @@ df['date'] = df['date'].dt.date
 # df.replace('DST Global and Lightspeed Venture Partners\\\\xe2\\\\x80\\\\x99 global fund.','DST Global',inplace = True)
 # df.replace(['SoftBank Group','Softbank Group','Softbank Group Corp'],'Softbank',inplace = True)
 
+#df.replace(["Byju\\xe2\\x80\\x99s",""BYJU\\'S""],"BYJU'S",inplace = True)
+df.drop(index=2,inplace= True)
+
 def load_overall_analysis_details():
     st.title('Overall Analysis')
 
@@ -95,12 +98,12 @@ def load_overall_analysis_details():
     # Sector Analysis Pie- top sectors(count+sum)
 
         st.header('Sector Analysis')
-        option2 = st.selectbox('Select Type',['Sum','Count'])
+        option2 = st.selectbox('Select Type',['Total Amount','Count'])
 
-        if option2 == 'Total':
-            sector_series = df.groupby('vertical')['amount'].sum().sort_values(ascending=False).head(10)
+        if option2 == 'Total Amount':
+            sector_series = df.groupby('vertical')['amount'].sum().sort_values(ascending=False).head(8)
         else:
-            sector_series = df.groupby('vertical')['amount'].count().sort_values(ascending=False).head(10)
+            sector_series = df.groupby('vertical')['amount'].count().sort_values(ascending=False).head(8)
 
         fig6,ax6 = plt.subplots()
         ax6.pie(sector_series,labels = sector_series.index,autopct = '%0.01f')
@@ -220,11 +223,56 @@ def load_investor_details(investor):
 
         st.subheader('Similar Investors')
         l = df[df['investors'].str.contains(investor)]['vertical'].value_counts().head(3).index.tolist()
-        undis_investors = df[df['investors'].str.contains('Undisclosed Investors', case=False)]
-        new = df.drop(index = undis_investors.index)
-        new = new[new['vertical'].isin(l)]['investors'].value_counts().reset_index().head(10).drop(columns = 'count')
+
+        undis1 = df[df['investors'].str.contains('Undisclosed Investors', case=False)]
+        undis2 = df[df['investors'].str.contains('Undisclosed', case=False)]
+        undis3 = df[df['investors'].str.contains('Undisclosed investor', case=False)]
+
+        undisclosed_indices = set(undis1.index).union(undis2.index).union(undis3.index)
+
+        new_df = df.drop(index=undisclosed_indices)
+        new = new_df[new_df['vertical'].isin(l)]['investors'].value_counts().reset_index().head(10).drop(columns = 'count')
         st.dataframe(new)
 
+
+def load_startup_details(startup_name):
+
+    # Name
+    st.title(startup_name)
+
+    # industry , sub-industry
+    industry_name = df[df['startup'] == startup_name].groupby('vertical')['amount'].sum().sort_values(ascending=False).index[0]
+    sub_industry_name = df[df['startup'] == startup_name].groupby('subvertical')['amount'].sum().sort_values(ascending=False).index[0]
+
+    st.metric(label='Industry',value= industry_name)
+    st.markdown("---")
+
+    st.metric(label='Sub-Industry', value= sub_industry_name)
+    st.markdown("---")
+
+    # city
+    city = df[df['startup'] == startup_name]['city'].unique()[0]
+    st.metric(label='Location',value=city)
+    st.markdown("---")
+
+    # Funding Rounds
+
+    st.header('Funding Rounds')
+    funding_df = df[df['startup'] == 'Flipkart'][['round', 'investors', 'date','amount']].rename(columns={'round':'funding round','amount':'amount in cr'}).reset_index().drop(columns='index')
+    st.dataframe(funding_df)
+    st.markdown("---")
+
+
+    # Similiar Company
+    st.header('Similiar Companies')
+
+    l1 = df[df['startup'] == startup_name].dropna(subset='vertical')['vertical'].tolist()
+    l2 = df[df['startup'] == startup_name].dropna(subset='subvertical')['subvertical'].tolist()
+    vertical_list = l1 + l2
+
+    new_df = df[df['startup'] != startup_name]
+    temp = pd.Series(new_df[new_df['vertical'].isin(vertical_list)]['startup'].drop_duplicates().unique()).reset_index().drop(columns=['index']).rename(columns={0: 'name'}).head(15)
+    st.dataframe(temp)
 
 st.sidebar.title('Indian StartUps Funding Analysis')
 
@@ -237,9 +285,13 @@ if option == 'Overall Analysis':
 
 elif option == 'StartUp Analysis':
 
-    st.sidebar.selectbox('Select StartUp',sorted(df['startup'].unique().tolist()))
+    df.drop(index=[33, 593], inplace=True)
+    startup_name = st.sidebar.selectbox('Select StartUp',sorted(df['startup'].unique().tolist()))
     btn2 = st.sidebar.button('Find Startup Details')
-    st.title('StartUp Analysis')
+
+    if btn2:
+        load_startup_details(startup_name)
+
 
 else:
     df.replace(['SoftBank Group', 'Softbank Group', 'Softbank Group Corp'], 'Softbank', inplace=True)
